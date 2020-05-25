@@ -1,0 +1,130 @@
+---
+title: "Candy_data"
+author: "Amit Pandit"
+date: "02/04/2020"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+# Dirty Data Project
+
+## Dataset 1 : Candy Data Project
+
+All i can say is ...phoooffffff ... what a data set to work on ...was a good learning experience though...
+
+![](https://media2.giphy.com/media/kgSrkPxSNBUbweYJOW/giphy.gif?cid=ecf05e476a44b1cbf1fbabfd45c5cb8fc5a100219d35bf82&rid=giphy.gif)
+
+
+### Cleaning notes
+
+There were 3 data sets involved in this project,  `boing-boing-candy-2015.xlsx`, `boing-boing-candy-2016.xlsx` and `boing-boing-candy-2017.xlsx`. 
+
+To clean it I did the following :
+
+1. First task was to identify the relevant data required as every data set had more than 100 columns each, this was done by    looking at the questions to be answered and by identifying the variables to work with in each of the data set.
+2. I devided my task of cleaning the data into two phases.
+   Phase 1 : Where in i called it primary cleaning involved    
+             1 Reading the files in the relevant forat using the `read_excel` function    
+             2 Cleaning the variable names using the `clean_variable` function      
+             3 Pivoting the data at the relevant variables using the `pivot_longer` function.   
+             4 Selecting the relevant variables required for analysis using the `select` function.   
+             5 Re-naming the data with the relavant names using the `names` function.   
+             6 Finally the same exercise was repeteaded for the other two data sets from `2016` and `2017`.   
+3. Then came Phase 2, which i felt was a mammoth of a task, mainly involved    
+             1 cleaning country names - united states was quiet a tesk.   
+             2 Selecting age which is only an intinge by using the `as.integer` function and 
+             then restricting age between 1 and 99 using the `mutate` and `ifelse` statement.   
+             3 Checking the formats in which data was parshed.   
+             4 Adding in the Variable Year which plays an important role in analysis using the `mutate` function.   
+             
+And finally after a few days of work - Ta...ta...daaaa.....Data looks a bit organised
+![](https://i.redd.it/qzi6s0oog8q11.jpg)
+          
+             
+Now it was time to analyse the data and answer the questions..
+
+Here is my code:   
+Calling the relevant libraries
+```{r, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(here)
+library(janitor)
+```
+
+Reading the data set and parsing the variables gender and country as character.
+```{r}
+candy_data <- read_csv(here("clean_data/candy_all_years_clean.csv"),
+                       col_types = cols(
+                            gender = col_character(),
+                            country = col_character()
+                            ))
+```
+
+Analysis questions
+
+1> What is the total number of candy ratings given across the three years. (number of candy ratings, not number of raters. Don’t count missing values)
+
+```{r}
+candy_data %>%
+  filter(!is.na(rating)) %>%
+   summarise(total_no_of_candy_ratings = n())
+```
+2> What was the average age of people who are going out trick or treating and the average age of people 3. not going trick or treating?
+```{r}
+candy_data %>%
+  group_by(trick_or_treat_yourself) %>%
+  summarise( average_age = mean(age,na.rm = TRUE))
+```
+3> For each of joy, despair and meh, which candy bar revived the most of these ratings?
+```{r}
+candy_data %>%
+  filter(!is.na(rating))%>%
+  group_by(rating, candy_name) %>%
+  summarise( count = n()) %>%
+  filter(count == max(count))
+```
+4> How many people rated Starburst as despair?
+```{r}
+candy_data %>%
+  filter(candy_name == "starburst", rating == "DESPAIR") %>%
+  summarise (total_starburst_despair = n())
+```
+For the next three questions, count despair as -1, joy as +1 and meh as 0.
+
+5> What was the most popular candy bar by this rating system for each gender in the dataset?
+# First lets create a seperate column called emotion_numeric using the recode function
+```{r}
+candy_data_numeric  <- candy_data %>%
+  mutate(rating_numeric = recode(rating, DESPAIR = -1, JOY = 1, MEH = 0))
+```
+
+```{r}
+candy_data_numeric %>%
+  group_by(gender, candy_name)%>%
+  summarise(sum = sum(rating_numeric, na.rm = TRUE)) %>%
+  filter(sum == max(sum))
+```
+6> What was the most popular candy bar in each year?
+```{r}
+candy_data_numeric %>%
+  group_by(year, candy_name)%>%
+  summarise(sum = sum(rating_numeric, na.rm = TRUE)) %>%
+  filter( sum == max(sum))
+```
+7> What was the most popular candy bar by this rating for people in US, Canada, UK and all other countries?
+```{r}
+candy_data_numeric%>%
+  mutate(country = if_else(country %in% c("united states", "canada", "united kingdom"), country, "other")) %>%
+  group_by(country, candy_name)%>%
+  summarise(sum = sum(rating_numeric, na.rm = TRUE)) %>%
+  filter( sum == max(sum))
+```
+
+
+
+
+
+
+
